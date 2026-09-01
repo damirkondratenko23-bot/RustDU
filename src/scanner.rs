@@ -10,6 +10,7 @@ static SIZE_CACHE: Lazy<Mutex<HashMap<PathBuf, u64>>> = Lazy::new(|| Mutex::new(
 #[derive(Debug, Clone)]
 pub struct FileEntry {
     pub name: String,
+    #[allow(dead_code)]
     pub path: PathBuf,
     pub size: u64,
     pub is_dir: bool,
@@ -83,6 +84,7 @@ pub fn delete_entry(path: &PathBuf) -> anyhow::Result<()> {
 }
 
 /// Очистка кэша (например, при выходе)
+#[allow(dead_code)]
 pub fn clear_cache() {
     SIZE_CACHE.lock().unwrap().clear();
 }
