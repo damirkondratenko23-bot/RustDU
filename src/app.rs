@@ -210,7 +210,7 @@ impl App {
         thread::sleep(Duration::from_millis(100));
 
         match scanner::scan_directory(&self.current_path) {
-            Ok((mut entries, total_size)) => {
+            Ok((entries, total_size)) => {
                 self.raw_entries = entries;
                 self.total_size = total_size;
                 // Сортируем в соответствии с текущим режимом
