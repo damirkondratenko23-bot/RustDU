@@ -1,5 +1,5 @@
 use ratatui::{prelude::*, widgets::*};
-use crate::app::{App, AppMode};
+use crate::app::{App, AppMode, Language};
 
 fn color_for_size(size: u64) -> Color {
     const GB: u64 = 1024 * 1024 * 1024;
@@ -49,12 +49,20 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         })
         .collect();
 
-    let title = format!(
-        "{}  |  Элементов: {}  |  Общий размер: {}",
-        app.current_path.display(),
-        app.raw_entries.len(),
-        format_size(app.total_size)
-    );
+    let title = match app.lang {
+        Language::English => format!(
+            "{}  |  Items: {}  |  Total Size: {}",
+            app.current_path.display(),
+            app.raw_entries.len(),
+            format_size(app.total_size)
+        ),
+        Language::Russian => format!(
+            "{}  |  Элементов: {}  |  Общий размер: {}",
+            app.current_path.display(),
+            app.raw_entries.len(),
+            format_size(app.total_size)
+        ),
+    };
 
     let list = List::new(items)
         .block(Block::default().borders(Borders::ALL).title(title))
@@ -64,31 +72,37 @@ pub fn render(frame: &mut Frame, app: &mut App) {
     let list_area = Rect::new(area.x, area.y, area.width, area.height.saturating_sub(2));
     frame.render_stateful_widget(list, list_area, &mut app.list_state);
 
-    // ---- Нижняя строка ----
+    // ---- Компактная нижняя строка ----
     let bottom_area = Rect::new(area.x, area.height - 2, area.width, 2);
-    let mut bottom_text = String::new();
 
-    match app.mode {
-        AppMode::Browse => {
-            bottom_text.push_str(
-                "[q/й] Выход  [d/в] Удалить  [g/п] Перейти  [s] Сорт.по разм.  [n] Сорт.по имени  [r] Обновить  [?] Справка",
-            );
-        }
-        AppMode::ConfirmDelete => {
-            bottom_text.push_str("Удалить выбранный элемент? (y/н - да, n/т - нет)");
-        }
+    let bottom_text = match app.mode {
+        AppMode::Browse => match app.lang {
+            Language::English => "Help (? or Shift + /)".to_string(),
+            Language::Russian => "Справка (? или Shift + /)".to_string(),
+        },
+        AppMode::ConfirmDelete => match app.lang {
+            Language::English => "Delete selected item? (y - yes, n - no)".to_string(),
+            Language::Russian => "Удалить выбранный элемент? (y - да, n - нет)".to_string(),
+        },
         AppMode::InputPath => {
-            bottom_text.push_str(&format!("Введите путь: {}", app.input_buffer));
+            let prompt = match app.lang {
+                Language::English => "Enter path",
+                Language::Russian => "Введите путь",
+            };
+            format!("{}: {}", prompt, app.input_buffer)
         }
-        AppMode::Help => {
-            bottom_text.push_str(
-                "Клавиши: ↑↓ - навигация, Enter - войти, Backspace - назад, q - выход, d - удалить, g - перейти, s/n - сортировка, r - обновить",
-            );
-        }
-    }
+        AppMode::Help => match app.lang {
+            Language::English => "Press any key or '?' to close help".to_string(),
+            Language::Russian => "Нажмите любую клавишу или '?' для закрытия".to_string(),
+        },
+    };
 
     if app.loading {
-        let loading_text = Paragraph::new("Загрузка...")
+        let loading_msg = match app.lang {
+            Language::English => "Loading...",
+            Language::Russian => "Загрузка...",
+        };
+        let loading_text = Paragraph::new(loading_msg)
             .block(Block::default().borders(Borders::NONE))
             .style(Style::default().fg(Color::Yellow));
         let loading_area = Rect::new(area.width / 2 - 6, area.height / 2 - 1, 12, 1);
@@ -99,6 +113,75 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .block(Block::default().borders(Borders::TOP).border_style(Style::default().fg(Color::Gray)))
         .style(Style::default().fg(Color::White));
     frame.render_widget(bottom_paragraph, bottom_area);
+
+    // ---- Подробное всплывающее окно справки (Help Popup) ----
+    if app.mode == AppMode::Help {
+        let help_text = match app.lang {
+            Language::English => vec![
+                Line::from(Span::styled("RustDU - Help & Functions Description", Style::default().add_modifier(Modifier::BOLD).fg(Color::Yellow))),
+                Line::from(""),
+                Line::from("Navigation & Control:"),
+                Line::from("  • ↑ / ↓        : Navigate through files and folders"),
+                Line::from("  • Enter        : Open selected directory"),
+                Line::from("  • Backspace    : Go back to parent directory"),
+                Line::from("  • g            : Enter a custom path manually"),
+                Line::from(""),
+                Line::from("Actions & Sorting:"),
+                Line::from("  • d            : Delete selected file or folder (with confirmation)"),
+                Line::from("  • s            : Sort items by size"),
+                Line::from("  • n            : Sort items by name"),
+                Line::from("  • r            : Refresh current directory scan"),
+                Line::from(""),
+                Line::from("Settings & System:"),
+                Line::from("  • l            : Switch language (English / Русский)"),
+                Line::from("  • ? (Shift+/)  : Open or close this help window"),
+                Line::from("  • q / Esc      : Quit application"),
+                Line::from(""),
+                Line::from(Span::styled("Press any key to close", Style::default().fg(Color::DarkGray))),
+            ],
+            Language::Russian => vec![
+                Line::from(Span::styled("RustDU - Справка и описание функций", Style::default().add_modifier(Modifier::BOLD).fg(Color::Yellow))),
+                Line::from(""),
+                Line::from("Навигация и управление:"),
+                Line::from("  • ↑ / ↓        : Перемещение по списку файлов и папок"),
+                Line::from("  • Enter        : Войти в выбранную директорию"),
+                Line::from("  • Backspace    : Вернуться в родительскую папку"),
+                Line::from("  • g            : Ввести путь для перехода вручную"),
+                Line::from(""),
+                Line::from("Действия и сортировка:"),
+                Line::from("  • d            : Удалить файл/папку (с подтверждением)"),
+                Line::from("  • s            : Сортировать элементы по размеру"),
+                Line::from("  • n            : Сортировать элементы по имени"),
+                Line::from("  • r            : Обновить сканирование папки"),
+                Line::from(""),
+                Line::from("Настройки и система:"),
+                Line::from("  • l            : Переключить язык (English / Русский)"),
+                Line::from("  • ? (Shift+/)  : Открыть или закрыть это окно справки"),
+                Line::from("  • q / Esc      : Выход из программы"),
+                Line::from(""),
+                Line::from(Span::styled("Нажмите любую клавишу для закрытия", Style::default().fg(Color::DarkGray))),
+            ],
+        };
+
+        let popup_block = Block::default()
+            .borders(Borders::ALL)
+            .title(match app.lang { Language::English => " Help & About ", Language::Russian => " Справка и описание " })
+            .style(Style::default().bg(Color::Black));
+
+        let popup_paragraph = Paragraph::new(help_text)
+            .block(popup_block)
+            .alignment(Alignment::Left);
+
+        // Размеры и центрирование окна справки
+        let popup_width = 72;
+        let popup_height = 20;
+        let popup_x = area.width.saturating_sub(popup_width) / 2;
+        let popup_y = area.height.saturating_sub(popup_height) / 2;
+        let popup_area = Rect::new(popup_x, popup_y, popup_width.min(area.width), popup_height.min(area.height));
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_widget(popup_paragraph, popup_area);
+    }
 }
 
 fn format_size(size: u64) -> String {

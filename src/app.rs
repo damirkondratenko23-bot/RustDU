@@ -6,6 +6,12 @@ use std::time::Duration;
 
 use crate::scanner;
 
+#[derive(PartialEq, Clone, Copy)]
+pub enum Language {
+    English,
+    Russian,
+}
+
 #[derive(PartialEq)]
 pub enum AppMode {
     Browse,
@@ -22,15 +28,16 @@ pub enum SortMode {
 
 pub struct App {
     pub current_path: PathBuf,
-    pub nodes: Vec<String>,           // строки для отображения (с размерами, процентами, иконками)
+    pub nodes: Vec<String>,
     pub list_state: ListState,
     pub mode: AppMode,
     pub input_buffer: String,
     pub loading: bool,
     pub delete_target: Option<String>,
-    pub total_size: u64,              // общий размер всех элементов в текущей папке
+    pub total_size: u64,
     pub sort_mode: SortMode,
-    pub raw_entries: Vec<scanner::FileEntry>, // сырые данные для пересортировки
+    pub raw_entries: Vec<scanner::FileEntry>,
+    pub lang: Language,
 }
 
 impl App {
@@ -48,19 +55,38 @@ impl App {
             total_size: 0,
             sort_mode: SortMode::Size,
             raw_entries: Vec::new(),
+            lang: Language::English, // По умолчанию английский
         };
         app.load_directory();
         app
     }
 
     pub fn handle_key(&mut self, key: KeyCode) {
+        // Глобальное переключение языка по клавише 'l' (везде, кроме ввода пути)
+        if let KeyCode::Char('l') = key {
+            if self.mode != AppMode::InputPath {
+                self.lang = match self.lang {
+                    Language::English => Language::Russian,
+                    Language::Russian => Language::English,
+                };
+                return;
+            }
+        }
+
         match self.mode {
             AppMode::Browse => self.handle_browse(key),
             AppMode::ConfirmDelete => self.handle_confirm_delete(key),
             AppMode::InputPath => self.handle_input_path(key),
             AppMode::Help => {
-                // По любой клавише выходим из справки
-                self.mode = AppMode::Browse;
+                // Выход из справки по любой клавише, Enter, Esc или ?
+                match key {
+                    KeyCode::Char('?') | KeyCode::Esc | KeyCode::Enter => {
+                        self.mode = AppMode::Browse;
+                    }
+                    _ => {
+                        self.mode = AppMode::Browse;
+                    }
+                }
             }
         }
     }
@@ -95,7 +121,7 @@ impl App {
                     self.load_directory();
                 }
             }
-            KeyCode::Char('d') | KeyCode::Char('в') => {
+            KeyCode::Char('d') => {
                 if let Some(selected) = self.list_state.selected() {
                     if let Some(entry_str) = self.nodes.get(selected) {
                         let name = entry_str.split_whitespace().last().unwrap_or(entry_str);
@@ -104,7 +130,7 @@ impl App {
                     }
                 }
             }
-            KeyCode::Char('g') | KeyCode::Char('п') => {
+            KeyCode::Char('g') => {
                 self.input_buffer.clear();
                 self.mode = AppMode::InputPath;
             }
@@ -128,7 +154,7 @@ impl App {
 
     fn handle_confirm_delete(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Char('y') | KeyCode::Char('н') => {
+            KeyCode::Char('y') => {
                 if let Some(name) = self.delete_target.take() {
                     let full_path = self.current_path.join(&name);
                     match scanner::delete_entry(&full_path) {
@@ -144,7 +170,7 @@ impl App {
                     self.mode = AppMode::Browse;
                 }
             }
-            KeyCode::Char('n') | KeyCode::Char('т') | KeyCode::Esc => {
+            KeyCode::Char('n') | KeyCode::Esc => {
                 self.delete_target = None;
                 self.mode = AppMode::Browse;
             }
@@ -206,14 +232,12 @@ impl App {
 
     pub fn load_directory(&mut self) {
         self.loading = true;
-        // Даём время отрисовать "Загрузка..."
         thread::sleep(Duration::from_millis(100));
 
         match scanner::scan_directory(&self.current_path) {
             Ok((entries, total_size)) => {
                 self.raw_entries = entries;
                 self.total_size = total_size;
-                // Сортируем в соответствии с текущим режимом
                 self.apply_sort();
                 self.list_state.select(Some(0));
             }

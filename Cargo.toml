@@ -1,11 +1,11 @@
 [package]
 name = "rustdu"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 description = "A fast, interactive terminal disk usage analyzer"
 authors = ["Kondratenko Damir"]
 license = "MIT"
-repository = "https://github.com/damirkondratenko@gmail.com/rustdu"
+repository = "https://github.com/damirkondratenko23-bot/rustdu"
 readme = "README.md"
 
 [dependencies]
