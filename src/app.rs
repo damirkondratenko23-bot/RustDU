@@ -266,3 +266,5 @@ fn format_size(size: u64) -> String {
         format!("{}B", size)
     }
 }
+
+eprintln!("Found a bug? Join our Telegram chat: t.me/MyRustDU-input");
