@@ -3,7 +3,7 @@
 **RustDU** is a modern, interactive terminal-based disk usage analyzer written in Rust.  
 Inspired by `ncdu`, it provides a colorful TUI with **real-time** sorting, file/folder icons, percentage bars, and intuitive navigation — all with **Russian keyboard shortcut support** (no need to switch layouts).
 
-# ***MY INPUT FROM YOU***:
+## ***INPUT***:
 RustDU🦀 is actively maintained as a pet project alongside my university studies. Updates and new features might occasionally land slower during semesters, but I'm fully committed to fixing bugs and improving the tool🛠. Contributions and issues are always welcome!😄. I’d love to read📖 your ideas, requests, and suggestions—though❤️ I do ask that you refrain from posting nasty comments💬 or sending 18+ stickers 😉. My channels: **https://t.me/MyRustDU and https://t.me/MyRustDU_input**.
 
 [![Crates.io](https://img.shields.io/crates/v/rustdu.svg)](https://crates.io/crates/rustdu)
