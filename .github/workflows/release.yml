@@ -3,7 +3,7 @@ name: Release Binaries
 on:
   push:
     tags:
-      - 'v*' # Срабатывает при создании тега, например v0.1.2
+      - 'v*'
 
 jobs:
   build:
@@ -42,9 +42,25 @@ jobs:
             mv target/${{ matrix.target }}/release/rustdu target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
           fi
 
-      - name: Upload Artifacts to Release
+      - name: Upload artifact to GitHub workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: extracted-artifacts
+          merge-multiple: true
+
+      - name: Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
-          files: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+          files: extracted-artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
